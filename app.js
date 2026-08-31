@@ -1,6 +1,7 @@
 const config = window.PRINT_SHOP_CONFIG || {};
 const cloudUrl = String(config.SUPABASE_URL || "").trim();
 const cloudKey = String(config.SUPABASE_PUBLISHABLE_KEY || "").trim();
+const internalLoginDomain = "imprentaprintshop.app";
 const cloudReady = cloudUrl.startsWith("https://") && cloudKey.length > 20 && Boolean(window.supabase);
 const database = cloudReady
   ? window.supabase.createClient(cloudUrl, cloudKey, { auth: { persistSession: true, autoRefreshToken: true } })
@@ -18,6 +19,10 @@ let toastTimer;
 
 const formatMoney = (value) => money.format(Number(value) || 0);
 const orderCode = (number) => number ? `O-${String(number).padStart(4, "0")}` : "Pedido nuevo";
+
+function technicalEmail(username) {
+  return `${username.trim().toLowerCase()}@${internalLoginDomain}`;
+}
 
 function formatDate(value) {
   if (!value) return "—";
@@ -263,39 +268,16 @@ function showLogin(message = "") {
 
 async function signIn(event) {
   event.preventDefault();
+  if (!loginForm.reportValidity()) return;
   $("#loginError").textContent = "";
   const button = $("#loginButton");
   button.disabled = true;
   button.textContent = "Verificando…";
-  const { data, error } = await database.auth.signInWithPassword({ email: $("#loginEmail").value.trim(), password: $("#loginPassword").value });
+  const { data, error } = await database.auth.signInWithPassword({ email: technicalEmail($("#loginUsername").value), password: $("#loginPassword").value });
   button.disabled = false;
   button.textContent = "Entrar al control";
-  if (error || !data.session) { $("#loginError").textContent = "No se pudo entrar. Revisa el correo y la contraseña."; return; }
+  if (error || !data.session) { $("#loginError").textContent = "No se pudo entrar. Revisa el usuario y la contraseña."; return; }
   showWorkspace(data.session);
-}
-
-async function createAccess() {
-  if (!loginForm.reportValidity()) return;
-  $("#loginError").textContent = "";
-  const button = $("#createAccessButton");
-  button.disabled = true;
-  button.textContent = "Creando acceso…";
-  const { data, error } = await database.auth.signUp({
-    email: $("#loginEmail").value.trim(),
-    password: $("#loginPassword").value,
-    options: { emailRedirectTo: window.location.href },
-  });
-  button.disabled = false;
-  button.textContent = "Crear acceso inicial";
-  if (error) {
-    $("#loginError").textContent = error.message || "No se pudo crear el acceso. Inténtalo nuevamente.";
-    return;
-  }
-  if (data.session) {
-    showWorkspace(data.session);
-    return;
-  }
-  $("#loginError").textContent = "Revisa tu correo y confirma el acceso. Después podrás entrar con estos mismos datos desde cualquier equipo.";
 }
 
 async function signOut() {
@@ -306,7 +288,6 @@ async function signOut() {
 
 form.addEventListener("submit", saveOrder);
 loginForm.addEventListener("submit", signIn);
-$("#createAccessButton").addEventListener("click", createAccess);
 $("#cancelEditButton").addEventListener("click", () => { resetForm(); notify("Edición cancelada."); });
 $("#newOrderButton").addEventListener("click", () => { resetForm(); $("#orderFormSection").scrollIntoView({ behavior: "smooth", block: "start" }); $("#client").focus({ preventScroll: true }); });
 $("#emptyNewOrderButton").addEventListener("click", () => $("#newOrderButton").click());
