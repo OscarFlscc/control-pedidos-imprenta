@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0c" />
+    <title>Imprenta Print Shop | Control de pedidos</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <section class="login-screen" id="loginScreen" aria-labelledby="loginTitle">
+      <div class="login-card">
+        <img class="login-logo" src="logo-imprenta-print-shop.jpg" alt="Imprenta Print Shop" />
+        <p class="eyebrow">Acceso del negocio</p>
+        <h1 id="loginTitle">Control de pedidos</h1>
+        <p>Ingresa con el correo y la contraseña que creaste para tu negocio. Tus pedidos se guardarán de forma segura en línea.</p>
+        <form id="loginForm" class="login-form">
+          <label class="field"><span>Correo electrónico</span><input id="loginEmail" type="email" autocomplete="email" placeholder="tu-correo@ejemplo.com" required /></label>
+          <label class="field"><span>Contraseña</span><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Tu contraseña" required /></label>
+          <p class="login-error" id="loginError" role="alert"></p>
+          <button class="button button-primary" id="loginButton" type="submit">Entrar al control</button>
+          <button class="create-access" id="createAccessButton" type="button">Crear acceso inicial</button>
+        </form>
+        <small class="login-note">Si es tu primera vez, escribe el correo y la contraseña que usarás y elige “Crear acceso inicial”. No se necesita una cuenta de ChatGPT.</small>
+      </div>
+    </section>
+
+    <div class="app-shell" id="appShell" hidden>
+      <header class="topbar">
+        <a class="brand" href="#inicio" aria-label="Ir al inicio">
+          <img src="logo-imprenta-print-shop.jpg" alt="Imprenta Print Shop" />
+          <span class="brand-copy">
+            <strong>Control de pedidos</strong>
+            <small>Diseño · Impresión · Calidad</small>
+          </span>
+        </a>
+        <div class="topbar-actions">
+          <span class="local-chip"><span class="online-dot"></span> Guardado en línea</span>
+          <button class="button button-outline" id="newOrderButton" type="button">＋ Nuevo pedido</button>
+          <button class="sign-out" id="signOutButton" type="button">Salir</button>
+        </div>
+      </header>
+
+      <main id="inicio">
+        <section class="hero-section" aria-labelledby="pageTitle">
+          <div>
+            <p class="eyebrow">Administración simple</p>
+            <h1 id="pageTitle">Cada pedido, bajo control.</h1>
+            <p class="intro">Registra trabajos, actualiza su avance y lleva un seguimiento claro de tus ingresos sin necesidad de iniciar sesión.</p>
+          </div>
+          <div class="hero-mark" aria-hidden="true">
+            <span></span><span></span><span></span>
+            <b>PS</b>
+          </div>
+        </section>
+
+        <section class="metrics" aria-label="Resumen de pedidos">
+          <article class="metric-card metric-cyan">
+            <span class="metric-label">En proceso</span>
+            <strong id="inProgressCount">0</strong>
+            <small>trabajos activos</small>
+          </article>
+          <article class="metric-card metric-magenta">
+            <span class="metric-label">Listos</span>
+            <strong id="readyCount">0</strong>
+            <small>pendientes de entrega</small>
+          </article>
+          <article class="metric-card metric-yellow">
+            <span class="metric-label">Por cobrar</span>
+            <strong id="pendingAmount">$0</strong>
+            <small>en pedidos no pagados</small>
+          </article>
+          <article class="metric-card metric-dark">
+            <span class="metric-label">Entregados</span>
+            <strong id="deliveredCount">0</strong>
+            <small>pedidos finalizados</small>
+          </article>
+        </section>
+
+        <section class="panel order-panel" id="orderFormSection" aria-labelledby="formTitle">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Nuevo registro</p>
+              <h2 id="formTitle">Registrar pedido</h2>
+            </div>
+            <span class="order-id-preview" id="orderIdPreview">Pedido O-0001</span>
+          </div>
+
+          <form id="orderForm" novalidate>
+            <input id="editingId" type="hidden" />
+            <div class="form-grid">
+              <label class="field field-wide">
+                <span>Cliente <em>*</em></span>
+                <input id="client" name="client" type="text" autocomplete="name" placeholder="Nombre completo o empresa" required />
+              </label>
+              <label class="field">
+                <span>Teléfono <em>*</em></span>
+                <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Ej. 868 123 4567" required />
+              </label>
+              <label class="field">
+                <span>Fecha de entrega <em>*</em></span>
+                <input id="deliveryDate" name="deliveryDate" type="date" required />
+              </label>
+              <label class="field">
+                <span>Tipo de trabajo <em>*</em></span>
+                <input id="workType" name="workType" type="text" list="workTypeOptions" placeholder="Ej. Tarjetas de presentación" required />
+                <datalist id="workTypeOptions">
+                  <option value="Tarjetas de presentación"></option>
+                  <option value="Lonas"></option>
+                  <option value="Volantes"></option>
+                  <option value="Playeras personalizadas"></option>
+                  <option value="Diseño gráfico"></option>
+                  <option value="Etiquetas"></option>
+                  <option value="Invitaciones"></option>
+                </datalist>
+              </label>
+              <label class="field">
+                <span>Precio total <em>*</em></span>
+                <div class="money-input"><span>$</span><input id="price" name="price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" required /></div>
+              </label>
+              <label class="field">
+                <span>Estado del pedido <em>*</em></span>
+                <select id="status" name="status" required>
+                  <option value="en-proceso">En proceso</option>
+                  <option value="listo">Listo</option>
+                  <option value="entregado">Entregado</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Medio de pago</span>
+                <select id="paymentMethod" name="paymentMethod">
+                  <option value="Efectivo">Efectivo</option>
+                  <option value="Transferencia">Transferencia</option>
+                  <option value="Tarjeta">Tarjeta</option>
+                  <option value="Depósito">Depósito</option>
+                  <option value="Otro">Otro</option>
+                </select>
+              </label>
+              <label class="field field-wide">
+                <span>Notas del pedido</span>
+                <textarea id="notes" name="notes" rows="3" placeholder="Detalles, cantidades, medidas o indicaciones especiales"></textarea>
+              </label>
+            </div>
+
+            <div class="toggles">
+              <label class="toggle-card">
+                <input id="paid" name="paid" type="checkbox" />
+                <span class="switch" aria-hidden="true"></span>
+                <span><b>Pedido pagado</b><small>Marca si ya recibiste el pago.</small></span>
+              </label>
+              <label class="toggle-card">
+                <input id="invoice" name="invoice" type="checkbox" />
+                <span class="switch" aria-hidden="true"></span>
+                <span><b>Requiere factura</b><small>Identifica los pedidos que necesitan comprobante fiscal.</small></span>
+              </label>
+            </div>
+
+            <div class="form-actions">
+              <button class="button button-ghost" id="cancelEditButton" type="button" hidden>Cancelar edición</button>
+              <button class="button button-primary" type="submit"><span id="saveIcon">＋</span> <span id="saveButtonText">Guardar pedido</span></button>
+            </div>
+          </form>
+        </section>
+
+        <section class="income-section" aria-labelledby="incomeTitle">
+          <div class="income-copy">
+            <p class="eyebrow">Finanzas</p>
+            <h2 id="incomeTitle">Ingresos mensuales</h2>
+            <p>El resumen considera los pedidos pagados con fecha de entrega dentro del mes seleccionado.</p>
+          </div>
+          <div class="income-controls">
+            <label class="month-picker"><span>Mes</span><input type="month" id="incomeMonth" /></label>
+            <div class="income-total"><span>Total cobrado</span><strong id="monthlyIncome">$0</strong></div>
+          </div>
+        </section>
+
+        <section class="income-breakdown" aria-label="Detalle de ingresos mensuales">
+          <article>
+            <span>Pedidos pagados</span>
+            <strong id="paidOrdersCount">0</strong>
+          </article>
+          <article>
+            <span>Ticket promedio</span>
+            <strong id="averageTicket">$0</strong>
+          </article>
+          <article>
+            <span>Por cobrar este mes</span>
+            <strong id="monthlyPending">$0</strong>
+          </article>
+        </section>
+
+        <section class="panel orders-panel" aria-labelledby="ordersTitle">
+          <div class="panel-heading table-heading">
+            <div>
+              <p class="eyebrow">Seguimiento</p>
+              <h2 id="ordersTitle">Pedidos registrados <span id="orderTotalBadge" class="count-badge">0</span></h2>
+            </div>
+            <div class="table-tools">
+              <label class="search-box"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Buscar cliente o trabajo" /></label>
+              <label class="filter-select"><span class="sr-only">Filtrar por estado</span><select id="statusFilter"><option value="all">Todos los estados</option><option value="en-proceso">En proceso</option><option value="listo">Listos</option><option value="entregado">Entregados</option></select></label>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Pedido</th>
+                  <th>Cliente</th>
+                  <th>Trabajo</th>
+                  <th>Entrega</th>
+                  <th>Precio</th>
+                  <th>Estado</th>
+                  <th>Pago</th>
+                  <th aria-label="Acciones"></th>
+                </tr>
+              </thead>
+              <tbody id="ordersTableBody"></tbody>
+            </table>
+            <div class="empty-state" id="emptyState">
+              <div class="empty-symbol">✦</div>
+              <h3>Aún no hay pedidos</h3>
+              <p>Registra el primero para comenzar a llevar el control.</p>
+              <button class="button button-primary" id="emptyNewOrderButton" type="button">Crear primer pedido</button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer>Imprenta Print Shop · Control de pedidos local</footer>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
