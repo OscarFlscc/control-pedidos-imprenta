@@ -56,7 +56,7 @@ function fromDatabase(row) {
   return {
     id: row.id, number: row.number, client: row.client, phone: row.phone,
     deliveryDate: row.delivery_date, workType: row.work_type, price: Number(row.price),
-    status: row.status, paymentMethod: row.payment_method, paid: row.paid,
+    status: row.status, paymentMethod: row.payment_method, paid: row.paid, paidAt: row.paid_at,
     invoice: row.invoice, notes: row.notes || "", createdAt: row.created_at,
   };
 }
@@ -82,17 +82,18 @@ function renderMetrics() {
 
 function renderIncome() {
   const selected = incomeMonth.value;
-  const forMonth = state.orders.filter((order) => order.deliveryDate?.startsWith(selected));
-  const paid = forMonth.filter((order) => order.paid);
+  const paid = state.orders.filter((order) => order.paid && order.paidAt?.startsWith(selected));
   const paidTotal = paid.reduce((sum, order) => sum + order.price, 0);
-  const pending = forMonth.filter((order) => !order.paid).reduce((sum, order) => sum + order.price, 0);
+  const pending = state.orders
+    .filter((order) => !order.paid && order.deliveryDate?.startsWith(selected))
+    .reduce((sum, order) => sum + order.price, 0);
   const [year, month] = selected.split("-");
   const label = selected ? new Intl.DateTimeFormat("es-MX", { month: "long", year: "numeric" }).format(new Date(Number(year), Number(month) - 1, 1)) : "el mes seleccionado";
   $("#monthlyIncome").textContent = formatMoney(paidTotal);
   $("#paidOrdersCount").textContent = paid.length;
   $("#averageTicket").textContent = formatMoney(paid.length ? paidTotal / paid.length : 0);
   $("#monthlyPending").textContent = formatMoney(pending);
-  $("#incomeTitle").nextElementSibling.textContent = `El resumen considera los pedidos pagados con fecha de entrega dentro de ${label}.`;
+  $("#incomeTitle").nextElementSibling.textContent = `El total cobrado considera los pagos registrados dentro de ${label}.`;
 }
 
 function filteredOrders() {
