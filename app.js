@@ -56,7 +56,7 @@ function fromDatabase(row) {
   return {
     id: row.id, number: row.number, client: row.client, phone: row.phone,
     deliveryDate: row.delivery_date, workType: row.work_type, price: Number(row.price),
-    status: row.status, paymentMethod: row.payment_method, paid: row.paid, paidAt: row.paid_at,
+    status: row.status, paymentMethod: row.payment_method, paid: row.paid, paidAt: row.paid_at, deletedAt: row.deleted_at,
     invoice: row.invoice, notes: row.notes || "", createdAt: row.created_at,
   };
 }
@@ -69,11 +69,16 @@ function toDatabase(order) {
   };
 }
 
+function activeOrders() {
+  return state.orders.filter((order) => !order.deletedAt);
+}
+
 function renderMetrics() {
-  const inProgress = state.orders.filter((order) => order.status === "en-proceso").length;
-  const ready = state.orders.filter((order) => order.status === "listo").length;
-  const delivered = state.orders.filter((order) => order.status === "entregado").length;
-  const pending = state.orders.filter((order) => !order.paid).reduce((sum, order) => sum + order.price, 0);
+  const active = activeOrders();
+  const inProgress = active.filter((order) => order.status === "en-proceso").length;
+  const ready = active.filter((order) => order.status === "listo").length;
+  const delivered = active.filter((order) => order.status === "entregado").length;
+  const pending = active.filter((order) => !order.paid).reduce((sum, order) => sum + order.price, 0);
   $("#inProgressCount").textContent = inProgress;
   $("#readyCount").textContent = ready;
   $("#deliveredCount").textContent = delivered;
@@ -84,7 +89,7 @@ function renderIncome() {
   const selected = incomeMonth.value;
   const paid = state.orders.filter((order) => order.paid && order.paidAt?.startsWith(selected));
   const paidTotal = paid.reduce((sum, order) => sum + order.price, 0);
-  const pending = state.orders
+  const pending = activeOrders()
     .filter((order) => !order.paid && order.deliveryDate?.startsWith(selected))
     .reduce((sum, order) => sum + order.price, 0);
   const [year, month] = selected.split("-");
@@ -99,7 +104,7 @@ function renderIncome() {
 function filteredOrders() {
   const search = $("#searchInput").value.trim().toLocaleLowerCase("es-MX");
   const status = $("#statusFilter").value;
-  return [...state.orders]
+  return activeOrders()
     .filter((order) => status === "all" || order.status === status)
     .filter((order) => !search || [order.client, order.phone, order.workType, order.number]
       .some((value) => String(value).toLocaleLowerCase("es-MX").includes(search)))
@@ -113,7 +118,8 @@ function statusOptions(selected) {
 
 function renderTable() {
   const orders = filteredOrders();
-  $("#orderTotalBadge").textContent = state.orders.length;
+  const active = activeOrders();
+  $("#orderTotalBadge").textContent = active.length;
   $("#ordersTableBody").innerHTML = orders.map((order) => `
     <tr>
       <td><span class="order-number">${orderCode(order.number)}</span></td>
@@ -125,7 +131,7 @@ function renderTable() {
       <td><select class="payment-select ${order.paid ? "payment-paid" : "payment-pending"}" data-action="paid" data-id="${order.id}" aria-label="Cambiar pago de ${escapeHTML(order.client)}"><option value="false" ${!order.paid ? "selected" : ""}>Pendiente</option><option value="true" ${order.paid ? "selected" : ""}>Pagado</option></select></td>
       <td><div class="row-actions"><button class="icon-button" data-action="print" data-id="${order.id}" type="button" title="Imprimir hoja de pedido">⎙</button><button class="icon-button" data-action="edit" data-id="${order.id}" type="button" title="Editar pedido">✎</button><button class="icon-button delete" data-action="delete" data-id="${order.id}" type="button" title="Eliminar pedido">×</button></div></td>
     </tr>`).join("");
-  $("#emptyState").hidden = state.orders.length !== 0;
+  $("#emptyState").hidden = active.length !== 0;
 }
 
 function render() {
@@ -231,13 +237,14 @@ async function updateOrderField(id, field, value) {
 
 async function deleteOrder(id) {
   const order = state.orders.find((item) => item.id === id);
-  if (!order || !window.confirm(`¿Eliminar el pedido ${orderCode(order.number)} de ${order.client}? Esta acción no se puede deshacer.`)) return;
-  const { error } = await database.from("orders").delete().eq("id", id);
+  if (!order || !window.confirm(`¿Quitar el pedido ${orderCode(order.number)} de ${order.client} de la tabla? Si está pagado, su ingreso se conservará.`)) return;
+  const { data, error } = await database.from("orders").update({ deleted_at: new Date().toISOString() }).eq("id", id).select().single();
   if (error) { notify("No se pudo eliminar el pedido. Inténtalo nuevamente.", true); return; }
-  state.orders = state.orders.filter((item) => item.id !== id);
+  const index = state.orders.findIndex((item) => item.id === id);
+  if (index >= 0) state.orders[index] = fromDatabase(data);
   if ($("#editingId").value === id) resetForm();
   render();
-  notify(`Pedido ${orderCode(order.number)} eliminado.`);
+  notify(`Pedido ${orderCode(order.number)} quitado de la tabla. Sus ingresos permanecen guardados.`);
 }
 
 function printOrder(id) {
