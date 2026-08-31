@@ -14,6 +14,7 @@ create table if not exists public.orders (
   payment_method text not null default 'Efectivo',
   paid boolean not null default false,
   paid_at date,
+  deleted_at timestamptz,
   invoice boolean not null default false,
   notes text not null default '',
   created_at timestamptz not null default now(),
@@ -24,6 +25,7 @@ alter table public.orders enable row level security;
 
 -- Compatibilidad con instalaciones creadas antes de registrar la fecha de pago.
 alter table public.orders add column if not exists paid_at date;
+alter table public.orders add column if not exists deleted_at timestamptz;
 update public.orders set paid_at = current_date where paid = true and paid_at is null;
 
 -- Ninguna persona sin iniciar sesión puede leer o modificar pedidos.
