@@ -13,15 +13,14 @@
         <img class="login-logo" src="logo-imprenta-print-shop.jpg" alt="Imprenta Print Shop" />
         <p class="eyebrow">Acceso del negocio</p>
         <h1 id="loginTitle">Control de pedidos</h1>
-        <p>Ingresa con el correo y la contraseña que creaste para tu negocio. Tus pedidos se guardarán de forma segura en línea.</p>
+        <p>Ingresa con el usuario y la contraseña del negocio. Tus pedidos se guardarán de forma segura en línea.</p>
         <form id="loginForm" class="login-form">
-          <label class="field"><span>Correo electrónico</span><input id="loginEmail" type="email" autocomplete="email" placeholder="tu-correo@ejemplo.com" required /></label>
+          <label class="field"><span>Usuario</span><input id="loginUsername" type="text" autocomplete="username" pattern="[A-Za-z0-9._-]+" title="Usa letras, números, punto, guion o guion bajo" placeholder="Ej. imprenta" required /></label>
           <label class="field"><span>Contraseña</span><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Tu contraseña" required /></label>
           <p class="login-error" id="loginError" role="alert"></p>
           <button class="button button-primary" id="loginButton" type="submit">Entrar al control</button>
-          <button class="create-access" id="createAccessButton" type="button">Crear acceso inicial</button>
         </form>
-        <small class="login-note">Si es tu primera vez, escribe el correo y la contraseña que usarás y elige “Crear acceso inicial”. No se necesita una cuenta de ChatGPT.</small>
+        <small class="login-note">El acceso inicial se configura una sola vez. No se necesita una cuenta de ChatGPT ni correo para entrar.</small>
       </div>
     </section>
 
