@@ -13,6 +13,7 @@ create table if not exists public.orders (
   status text not null default 'en-proceso' check (status in ('en-proceso', 'listo', 'entregado')),
   payment_method text not null default 'Efectivo',
   paid boolean not null default false,
+  paid_at date,
   invoice boolean not null default false,
   notes text not null default '',
   created_at timestamptz not null default now(),
@@ -20,6 +21,10 @@ create table if not exists public.orders (
 );
 
 alter table public.orders enable row level security;
+
+-- Compatibilidad con instalaciones creadas antes de registrar la fecha de pago.
+alter table public.orders add column if not exists paid_at date;
+update public.orders set paid_at = current_date where paid = true and paid_at is null;
 
 -- Ninguna persona sin iniciar sesión puede leer o modificar pedidos.
 revoke all on public.orders from anon;
@@ -58,6 +63,31 @@ begin
   return new;
 end;
 $$;
+
+create or replace function public.set_order_payment_date()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if new.paid then
+    if tg_op = 'INSERT' then
+      new.paid_at = coalesce(new.paid_at, current_date);
+    elsif not coalesce(old.paid, false) then
+      new.paid_at = coalesce(new.paid_at, current_date);
+    end if;
+  else
+    new.paid_at = null;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists orders_set_payment_date on public.orders;
+create trigger orders_set_payment_date
+before insert or update on public.orders
+for each row execute function public.set_order_payment_date();
 
 drop trigger if exists orders_set_updated_at on public.orders;
 create trigger orders_set_updated_at
