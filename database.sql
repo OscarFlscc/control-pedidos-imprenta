@@ -10,8 +10,9 @@ create table if not exists public.orders (
   delivery_date date not null,
   work_type text not null check (char_length(trim(work_type)) > 0),
   price numeric(12,2) not null check (price >= 0),
-  status text not null default 'en-proceso' check (status in ('en-proceso', 'listo', 'entregado')),
+  status text not null default 'en-proceso' check (status in ('en-proceso', 'listo', 'entregado', 'cancelado')),
   payment_method text not null default 'Efectivo',
+  quoted_by text not null default 'Fernando Jimenez',
   paid boolean not null default false,
   paid_at date,
   deleted_at timestamptz,
@@ -26,6 +27,9 @@ alter table public.orders enable row level security;
 -- Compatibilidad con instalaciones creadas antes de registrar la fecha de pago.
 alter table public.orders add column if not exists paid_at date;
 alter table public.orders add column if not exists deleted_at timestamptz;
+alter table public.orders add column if not exists quoted_by text not null default 'Fernando Jimenez';
+alter table public.orders drop constraint if exists orders_status_check;
+alter table public.orders add constraint orders_status_check check (status in ('en-proceso', 'listo', 'entregado', 'cancelado'));
 update public.orders set paid_at = current_date where paid = true and paid_at is null;
 
 -- Ninguna persona sin iniciar sesión puede leer o modificar pedidos.
