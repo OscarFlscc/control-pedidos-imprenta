@@ -148,6 +148,7 @@ tbody tr:hover td { background: #fbfbf9; }
 .status-select.status-en-proceso { color: #514800; background: #fff8b3; }
 .status-select.status-listo { color: #005d63; background: #c5fbfc; }
 .status-select.status-entregado { color: #fff; background: #35353d; }
+.status-select.status-cancelado { color: #8f1630; background: #ffe0e4; }
 .payment-select.payment-paid { color: #056141; background: #c9f5de; }
 .payment-select.payment-pending { color: #a2293d; background: #ffe0e4; }
 .row-actions { display: flex; gap: 5px; justify-content: flex-end; }
