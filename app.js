@@ -8,7 +8,7 @@ const database = cloudReady
   : null;
 
 const money = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
-const statusLabels = { "en-proceso": "En proceso", listo: "Listo", entregado: "Entregado" };
+const statusLabels = { "en-proceso": "En proceso", listo: "Listo", entregado: "Entregado", cancelado: "Cancelado" };
 const state = { orders: [], session: null };
 const $ = (selector) => document.querySelector(selector);
 const form = $("#orderForm");
@@ -57,6 +57,7 @@ function fromDatabase(row) {
     id: row.id, number: row.number, client: row.client, phone: row.phone,
     deliveryDate: row.delivery_date, workType: row.work_type, price: Number(row.price),
     status: row.status, paymentMethod: row.payment_method, paid: row.paid, paidAt: row.paid_at, deletedAt: row.deleted_at,
+    quotedBy: row.quoted_by || "Fernando Jimenez",
     invoice: row.invoice, notes: row.notes || "", createdAt: row.created_at,
   };
 }
@@ -66,6 +67,7 @@ function toDatabase(order) {
     client: order.client, phone: order.phone, delivery_date: order.deliveryDate,
     work_type: order.workType, price: order.price, status: order.status,
     payment_method: order.paymentMethod, paid: order.paid, invoice: order.invoice, notes: order.notes,
+    quoted_by: order.quotedBy,
   };
 }
 
@@ -78,7 +80,7 @@ function renderMetrics() {
   const inProgress = active.filter((order) => order.status === "en-proceso").length;
   const ready = active.filter((order) => order.status === "listo").length;
   const delivered = active.filter((order) => order.status === "entregado").length;
-  const pending = active.filter((order) => !order.paid).reduce((sum, order) => sum + order.price, 0);
+  const pending = active.filter((order) => !order.paid && order.status !== "cancelado").reduce((sum, order) => sum + order.price, 0);
   $("#inProgressCount").textContent = inProgress;
   $("#readyCount").textContent = ready;
   $("#deliveredCount").textContent = delivered;
@@ -87,10 +89,10 @@ function renderMetrics() {
 
 function renderIncome() {
   const selected = incomeMonth.value;
-  const paid = state.orders.filter((order) => order.paid && order.paidAt?.startsWith(selected));
+  const paid = state.orders.filter((order) => order.status !== "cancelado" && order.paid && order.paidAt?.startsWith(selected));
   const paidTotal = paid.reduce((sum, order) => sum + order.price, 0);
   const pending = activeOrders()
-    .filter((order) => !order.paid && order.deliveryDate?.startsWith(selected))
+    .filter((order) => order.status !== "cancelado" && !order.paid && order.deliveryDate?.startsWith(selected))
     .reduce((sum, order) => sum + order.price, 0);
   const [year, month] = selected.split("-");
   const label = selected ? new Intl.DateTimeFormat("es-MX", { month: "long", year: "numeric" }).format(new Date(Number(year), Number(month) - 1, 1)) : "el mes seleccionado";
@@ -106,7 +108,7 @@ function filteredOrders() {
   const status = $("#statusFilter").value;
   return activeOrders()
     .filter((order) => status === "all" || order.status === status)
-    .filter((order) => !search || [order.client, order.phone, order.workType, order.number]
+    .filter((order) => !search || [order.client, order.phone, order.workType, order.quotedBy, order.number]
       .some((value) => String(value).toLocaleLowerCase("es-MX").includes(search)))
     .sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt));
 }
@@ -123,7 +125,7 @@ function renderTable() {
   $("#ordersTableBody").innerHTML = orders.map((order) => `
     <tr>
       <td><span class="order-number">${orderCode(order.number)}</span></td>
-      <td><span class="customer-name">${escapeHTML(order.client)}</span><span class="customer-phone">${escapeHTML(order.phone)}</span></td>
+      <td><span class="customer-name">${escapeHTML(order.client)}</span><span class="customer-phone">${escapeHTML(order.phone)}</span><span class="cell-subtext">Cotizó: ${escapeHTML(order.quotedBy)}</span></td>
       <td><span>${escapeHTML(order.workType)}</span>${order.invoice ? '<span class="cell-subtext">Factura requerida</span>' : ""}</td>
       <td>${formatDate(order.deliveryDate)}</td>
       <td class="price-cell">${formatMoney(order.price)}</td>
@@ -148,12 +150,13 @@ function resetForm() {
   $("#saveButtonText").textContent = "Guardar pedido";
   $("#cancelEditButton").hidden = true;
   $("#orderIdPreview").textContent = "Pedido nuevo";
+  $("#quotedBy").value = "Fernando Jimenez";
   setDates();
 }
 
 function collectOrder() {
   return {
-    client: $("#client").value.trim(), phone: $("#phone").value.trim(), deliveryDate: deliveryDate.value,
+    client: $("#client").value.trim(), quotedBy: $("#quotedBy").value.trim(), phone: $("#phone").value.trim(), deliveryDate: deliveryDate.value,
     workType: $("#workType").value.trim(), price: Number($("#price").value), status: $("#status").value,
     paymentMethod: $("#paymentMethod").value, paid: $("#paid").checked, invoice: $("#invoice").checked,
     notes: $("#notes").value.trim(),
@@ -173,7 +176,7 @@ async function fetchOrders(quiet = false) {
 async function saveOrder(event) {
   event.preventDefault();
   const order = collectOrder();
-  if (!order.client || !order.phone || !order.deliveryDate || !order.workType || Number.isNaN(order.price) || order.price < 0) {
+  if (!order.client || !order.quotedBy || !order.phone || !order.deliveryDate || !order.workType || Number.isNaN(order.price) || order.price < 0) {
     form.reportValidity();
     return;
   }
@@ -204,6 +207,7 @@ function editOrder(id) {
   if (!order) return;
   $("#editingId").value = order.id;
   $("#client").value = order.client;
+  $("#quotedBy").value = order.quotedBy;
   $("#phone").value = order.phone;
   deliveryDate.value = order.deliveryDate;
   $("#workType").value = order.workType;
@@ -255,6 +259,7 @@ function printOrder(id) {
   if (!printView) { notify("El navegador bloqueó la ventana de impresión. Permite las ventanas emergentes e inténtalo de nuevo.", true); return; }
   printView.document.write(`<!doctype html><html lang="es"><head><meta charset="UTF-8"><title>Pedido ${orderCode(order.number)}</title><style>*{box-sizing:border-box}body{margin:0;padding:42px;color:#121217;font:15px Arial,sans-serif}.head{display:flex;justify-content:space-between;gap:20px;padding-bottom:24px;border-bottom:5px solid #111}.logo{width:185px;height:88px;object-fit:cover;object-position:49% 55%;background:#000}.code{text-align:right}.code b{display:block;font-size:27px}.code span{color:#60606a}.label{margin:28px 0 10px;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#666}.title{margin:0;font-size:24px}.grid{display:grid;grid-template-columns:1fr 1fr;border:1px solid #ddd}.cell{min-height:77px;padding:16px;border-right:1px solid #ddd;border-bottom:1px solid #ddd}.cell:nth-child(2n){border-right:0}.cell:nth-last-child(-n+2){border-bottom:0}.cell span{display:block;margin-bottom:6px;color:#666;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px}.cell b{font-size:16px}.notes{min-height:100px;padding:17px;border:1px solid #ddd;white-space:pre-wrap}.status{display:inline-block;margin-top:20px;padding:9px 13px;background:#f4f000;font-weight:800}.footer{margin-top:50px;padding-top:15px;border-top:1px solid #ddd;color:#666;font-size:12px}@media print{body{padding:22px}}</style></head><body><header class="head"><img class="logo" src="${logoURL}" alt="Imprenta Print Shop"><div class="code"><b>${orderCode(order.number)}</b><span>Hoja de pedido</span></div></header><p class="label">Cliente</p><h1 class="title">${escapeHTML(order.client)}</h1><div class="grid"><div class="cell"><span>Teléfono</span><b>${escapeHTML(order.phone)}</b></div><div class="cell"><span>Fecha de entrega</span><b>${formatDate(order.deliveryDate)}</b></div><div class="cell"><span>Tipo de trabajo</span><b>${escapeHTML(order.workType)}</b></div><div class="cell"><span>Precio total</span><b>${formatMoney(order.price)}</b></div><div class="cell"><span>Estado</span><b>${statusLabels[order.status]}</b></div><div class="cell"><span>Pago</span><b>${order.paid ? "Pagado" : "Pendiente"} · ${escapeHTML(order.paymentMethod)}</b></div><div class="cell"><span>Factura</span><b>${order.invoice ? "Sí requiere factura" : "No requiere factura"}</b></div><div class="cell"><span>Registro</span><b>${orderCode(order.number)}</b></div></div><p class="label">Notas e indicaciones</p><div class="notes">${escapeHTML(order.notes || "Sin indicaciones adicionales.")}</div><div class="status">${statusLabels[order.status]}</div><p class="footer">Imprenta Print Shop · Diseño · Impresión · Calidad</p></body></html>`);
   printView.document.close();
+  printView.document.querySelector(".status")?.insertAdjacentHTML("beforebegin", `<p class="label">Quién cotizó</p><div class="notes">${escapeHTML(order.quotedBy)}</div>`);
   printView.addEventListener("load", () => setTimeout(() => printView.print(), 250));
 }
 
