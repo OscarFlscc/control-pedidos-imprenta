@@ -20,7 +20,7 @@
           <p class="login-error" id="loginError" role="alert"></p>
           <button class="button button-primary" id="loginButton" type="submit">Entrar al control</button>
         </form>
-        <small class="login-note">El acceso inicial se configura una sola vez. No se necesita una cuenta de ChatGPT ni correo para entrar.</small>
+        <small class="login-note">Usa el usuario y la contraseña del negocio para acceder.</small>
       </div>
     </section>
 
@@ -93,6 +93,10 @@
                 <input id="client" name="client" type="text" autocomplete="name" placeholder="Nombre completo o empresa" required />
               </label>
               <label class="field">
+                <span>Quién cotizó <em>*</em></span>
+                <input id="quotedBy" name="quotedBy" type="text" value="Fernando Jimenez" required />
+              </label>
+              <label class="field">
                 <span>Teléfono <em>*</em></span>
                 <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Ej. 868 123 4567" required />
               </label>
@@ -123,6 +127,7 @@
                   <option value="en-proceso">En proceso</option>
                   <option value="listo">Listo</option>
                   <option value="entregado">Entregado</option>
+                  <option value="cancelado">Cancelado</option>
                 </select>
               </label>
               <label class="field">
@@ -196,7 +201,7 @@
             </div>
             <div class="table-tools">
               <label class="search-box"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Buscar cliente o trabajo" /></label>
-              <label class="filter-select"><span class="sr-only">Filtrar por estado</span><select id="statusFilter"><option value="all">Todos los estados</option><option value="en-proceso">En proceso</option><option value="listo">Listos</option><option value="entregado">Entregados</option></select></label>
+              <label class="filter-select"><span class="sr-only">Filtrar por estado</span><select id="statusFilter"><option value="all">Todos los estados</option><option value="en-proceso">En proceso</option><option value="listo">Listos</option><option value="entregado">Entregados</option><option value="cancelado">Cancelados</option></select></label>
             </div>
           </div>
 
