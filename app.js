@@ -127,6 +127,7 @@ function renderTable() {
       <td><span class="order-number">${orderCode(order.number)}</span></td>
       <td><span class="customer-name">${escapeHTML(order.client)}</span><span class="customer-phone">${escapeHTML(order.phone)}</span><span class="cell-subtext">Cotizó: ${escapeHTML(order.quotedBy)}</span></td>
       <td><span>${escapeHTML(order.workType)}</span>${order.invoice ? '<span class="cell-subtext">Factura requerida</span>' : ""}</td>
+      <td class="notes-cell">${escapeHTML(order.notes || "Sin notas")}</td>
       <td>${formatDate(order.deliveryDate)}</td>
       <td class="price-cell">${formatMoney(order.price)}</td>
       <td><select class="status-select status-${order.status}" data-action="status" data-id="${order.id}" aria-label="Cambiar estado de ${escapeHTML(order.client)}">${statusOptions(order.status)}</select></td>
